@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.4.4/build/index.umd.min.js"></script>
+
 
     <style>
         :root {
@@ -118,11 +120,60 @@
             cursor: not-allowed;
         }
 
-        .content-selection {
+        .button-group {
             display: flex;
             justify-content: center;
             gap: 15px;
             flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .analysis-group {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .analysis-group button {
+            margin: 15px auto 0 auto;
+        }
+
+        .divider {
+            text-align: center;
+            font-weight: 700;
+            color: var(--border-color);
+            margin: 30px 0;
+        }
+
+        .select-group {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .select-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .select-group select {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            background-color: white;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            font-family: 'Tektur', sans-serif;
+            cursor: pointer;
+        }
+
+        .select-group select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
         }
 
         .file-upload-area {
@@ -160,18 +211,12 @@
             font-weight: 500;
         }
 
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 30px;
-            margin-top: 30px;
-        }
-
-        .chart-container {
-            padding: 20px;
+        .chart-container-full-width {
+            display: none;
             border: 1px solid var(--border-color);
             border-radius: 12px;
             background-color: #fdfdfd;
+            position: relative;
         }
 
         .calculator-container {
@@ -302,35 +347,31 @@
 
         <div class="content-section">
             <h2>Аналіз вступної кампанії</h2>
-            <div class="file-upload-area">
-                <label for="htmlFileInput">Натисніть тут, щоб обрати HTML-файл для аналізу ...</label>
-                <input type="file" id="htmlFileInput" accept=".html, .htm">
+
+            <div class="analysis-group">
+                <div class="select-group">
+                    <label for="fileSelect">Оберіть файл для аналізу зі списку:</label>
+                    <select id="fileSelect">
+                        <option value="MP_162_2024.html">Магістр професійний (сп.162, 2024р.)</option>
+                        <option value="MS_162_2024.html">Магістр науковий (сп.162, 2024р.)</option>
+                    </select>
+                </div>
+                <button id="analyzeSelectedBtn">Аналізувати обраний зі списку</button>
             </div>
 
-            <div class="content-selection">
-                <button id="analyzeDefaultBtn">Аналізувати файл за замовчуванням</button>
-                <button id="fetchDataBtn">Аналізувати обраний файл</button>
+            <div class="divider">АБО</div>
+
+            <div class="analysis-group">
+                <div class="file-upload-area"><label for="htmlFileInput">Натисніть тут, щоб завантажити свій
+                        файл...</label><input type="file" id="htmlFileInput" accept=".html, .htm"></div>
+                <button id="analyzeUploadedBtn">Аналізувати завантажений файл</button>
             </div>
 
             <div id="status">Натисніть "Аналізувати файл за замовчуванням" або оберіть свій файл для аналізу.</div>
 
-            <div class="charts-grid">
-                <div class="chart-container">
-                    <h3>Рейтинг</h3>
-                    <canvas id="ratingsChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3>ТЗНК</h3>
-                    <canvas id="tznkChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3>Іноземна мова</h3>
-                    <canvas id="engChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <h3>Фаховий іспит</h3>
-                    <canvas id="fiChart"></canvas>
-                </div>
+            <div id="chartSection" class="chart-container-full-width">
+                <h3>Загальний розподіл балів</h3>
+                <canvas id="combinedChart"></canvas>
             </div>
         </div>
     </div>
@@ -342,207 +383,183 @@
         Chart.defaults.color = '#333';
 
         const fileInput = document.getElementById('htmlFileInput');
-        const fetchDataBtn = document.getElementById('fetchDataBtn');
+        const fileSelect = document.getElementById('fileSelect');
+        const analyzeUploadedBtn = document.getElementById('analyzeUploadedBtn');
+        const analyzeSelectedBtn = document.getElementById('analyzeSelectedBtn');
         const statusDiv = document.getElementById('status');
-        const chartContexts = {
-            ratings: document.getElementById('ratingsChart').getContext('2d'),
-            tznk: document.getElementById('tznkChart').getContext('2d'),
-            eng: document.getElementById('engChart').getContext('2d'),
-            fi: document.getElementById('fiChart').getContext('2d'),
-        };
+        const chartSection = document.getElementById('chartSection');
+        const chartContext = document.getElementById('combinedChart').getContext('2d');
+        let combinedChartInstance;
 
-        const analyzeDefaultBtn = document.getElementById('analyzeDefaultBtn');
-
-        let chartInstances = {};
-
-        fetchDataBtn.disabled = true;
+        analyzeUploadedBtn.disabled = true;
 
         fileInput.addEventListener('change', () => {
             if (fileInput.files.length > 0) {
-                statusDiv.textContent = `Файл обрано. Все готово до аналізу.`;
-                statusDiv.style.color = '#555';
-                fetchDataBtn.disabled = false;
+                statusDiv.textContent = `Обрано файл: ${fileInput.files[0].name}.`;
+                analyzeUploadedBtn.disabled = false;
             } else {
-                statusDiv.textContent = "Будь ласка, оберіть HTML-файл для початку.";
-                fetchDataBtn.disabled = true;
+                analyzeUploadedBtn.disabled = true;
             }
         });
 
-        fetchDataBtn.addEventListener('click', () => {
-            const file = fileInput.files[0];
-            if (!file) {
-                statusDiv.textContent = "Помилка: не обрано файл.";
-                statusDiv.style.color = 'red';
-                return;
-            }
+        analyzeSelectedBtn.addEventListener('click', () => {
+            const selectedFile = fileSelect.value;
+            statusDiv.textContent = `Завантаження файлу зі списку: ${selectedFile}...`;
+            setButtonsDisabled(true);
 
-            const reader = new FileReader();
-
-            reader.onload = (event) => {
-                const htmlContent = event.target.result;
-                analyzeHtmlContent(htmlContent);
-            };
-
-            reader.onerror = (event) => {
-                console.error("Файл неможливо прочитати!", event.target.error);
-                statusDiv.textContent = `Помилка: неможливо прочитати файл.`;
-                statusDiv.style.color = 'red';
-            };
-
-            statusDiv.textContent = "Читання файла...";
-            fetchDataBtn.disabled = true;
-            analyzeDefaultBtn.disabled = true;
-            reader.readAsText(file);
-        });
-
-        analyzeDefaultBtn.addEventListener('click', () => {
-            const defaultFile = '162_2024.html';
-            statusDiv.textContent = `Завантаження файлу за замовчуванням: ${defaultFile}...`;
-            fetchDataBtn.disabled = true;
-            analyzeDefaultBtn.disabled = true;
-
-            fetch(defaultFile)
+            fetch(selectedFile)
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Не вдалося завантажити файл. Переконайтесь, що '${defaultFile}' знаходиться в тій же папці, що й index.html. Статус: ${response.statusText}`);
-                    }
+                    if (!response.ok) throw new Error(`Не вдалося завантажити файл '${selectedFile}'. Переконайтесь, що він знаходиться в тій же папці.`);
                     return response.text();
                 })
-                .then(htmlContent => {
-                    analyzeHtmlContent(htmlContent);
-                })
+                .then(htmlContent => analyzeHtmlContent(htmlContent))
                 .catch(error => {
-                    console.error("Помилка під час завантаження файлу за замовчуванням:", error);
                     statusDiv.textContent = `Помилка: ${error.message}`;
                     statusDiv.style.color = 'red';
-                    fetchDataBtn.disabled = fileInput.files.length === 0;
-                    analyzeDefaultBtn.disabled = false;
+                    setButtonsDisabled(false);
                 });
         });
 
+        analyzeUploadedBtn.addEventListener('click', () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => analyzeHtmlContent(event.target.result);
+            reader.onerror = () => { statusDiv.textContent = `Помилка: неможливо прочитати файл.`; statusDiv.style.color = 'red'; setButtonsDisabled(false); };
+
+            statusDiv.textContent = "Читання файла...";
+            setButtonsDisabled(true);
+            reader.readAsText(file);
+        });
+
+        function setButtonsDisabled(isDisabled) {
+            analyzeSelectedBtn.disabled = isDisabled;
+            analyzeUploadedBtn.disabled = isDisabled || fileInput.files.length === 0;
+        }
 
         function analyzeHtmlContent(htmlContent) {
             try {
                 statusDiv.textContent = "Парсинг HTML-файла...";
-
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlContent, 'text/html');
-
                 const budgetDivs = doc.querySelectorAll("div.payment-1.request-status-14");
+                if (budgetDivs.length === 0) throw new Error("Не знайдено жодного студента-бюджетника в наданому файлі.");
 
-                if (budgetDivs.length === 0) {
-                    throw new Error("Не знайдено жодного студента-бюджетника. Переконайтесь, що файл коректний.");
-                }
-
-                statusDiv.textContent = `Знайдено ${budgetDivs.length} студентів-бюджетників. Видобування оцінок...`;
-
-                const ratings = [];
-                const tznk = [];
-                const eng = [];
-                const profi = [];
+                statusDiv.textContent = `Знайдено ${budgetDivs.length} студентів. Видобування оцінок...`;
+                const ratings = [], tznk = [], eng = [], profi = [];
 
                 budgetDivs.forEach(budgetDiv => {
                     const ratingEl = budgetDiv.querySelector("div.offer-request-kv");
                     if (ratingEl) {
-                        ratings.push(parseFloat(ratingEl.innerText.slice(34, 41).replace(",", ".")));
+                        const score = parseFloat(ratingEl.innerText.slice(34, 41).replace(",", "."));
+                        if (!isNaN(score)) ratings.push(score);
                     }
-
                     const subjectDivs = budgetDiv.querySelectorAll("div.offer-subject");
                     subjectDivs.forEach(sub => {
-                        const subText = sub.innerText;
                         const scoreEl = sub.querySelector("div.f");
-                        if (scoreEl) {
-                            const scoreMatch = scoreEl.innerText.match(/\d+/);
-                            if (scoreMatch) {
-                                const score = parseFloat(scoreMatch[0]);
-                                if (subText.includes("ТЗНК")) tznk.push(score);
-                                else if (subText.includes("Іноземна")) eng.push(score);
-                                else if (subText.includes("Фахове")) profi.push(score);
-                            }
+                        if (scoreEl && scoreEl.innerText.match(/\d+/)) {
+                            const score = parseFloat(scoreEl.innerText.match(/\d+/)[0]);
+                            if (sub.innerText.includes("ТЗНК")) tznk.push(score);
+                            else if (sub.innerText.includes("Іноземна")) eng.push(score);
+                            else if (sub.innerText.includes("Фахове")) profi.push(score);
                         }
                     });
                 });
-
                 statusDiv.textContent = "Створення візуалізації...";
-
-                createBarChart('ratings', 'Overall Rating', createDistribution(ratings, 2));
-                createBarChart('tznk', 'TZNK Score', createDistribution(tznk, 2));
-                createBarChart('eng', 'Foreign Language Score', createDistribution(eng, 2));
-                createBarChart('fi', 'Professional Exam Score', createDistribution(profi, 2));
+                createCombinedBoxPlotChart(ratings, tznk, eng, profi);
+                chartSection.style.display = 'block';
 
                 statusDiv.textContent = `Аналіз успішно завершено! Проаналізовано ${budgetDivs.length} студентів.`;
                 statusDiv.style.color = 'green';
-
             } catch (error) {
-                console.error("Помилка трапилась під час аналізу:", error);
+                console.error("Помилка під час аналізу:", error);
                 statusDiv.textContent = `Помилка: ${error.message}`;
                 statusDiv.style.color = 'red';
+                chartSection.style.display = 'none';
             } finally {
-                fetchDataBtn.disabled = fileInput.files.length === 0;
-                analyzeDefaultBtn.disabled = false;
+                setButtonsDisabled(false);
             }
         }
+        const asc = arr => arr.sort((a, b) => a - b);
 
-        function createDistribution(scores, bucketSize) {
-            if (scores.length === 0) return { labels: [], data: [] };
+        const sum = arr => arr.reduce((a, b) => a + b, 0);
 
-            const distribution = {};
-            scores.forEach(score => {
-                if (isNaN(score)) return;
-                const bucketStart = Math.floor(score / bucketSize) * bucketSize;
-                distribution[bucketStart] = (distribution[bucketStart] || 0) + 1;
-            });
+        const mean = arr => sum(arr) / arr.length;
 
-            const sortedBuckets = Object.keys(distribution).sort((a, b) => a - b);
+        const quantile = (arr, q) => {
+            const sorted = asc(arr);
+            const pos = (sorted.length - 1) * q;
+            const base = Math.floor(pos);
+            const rest = pos - base;
+            if (sorted[base + 1] !== undefined) {
+                return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+            } else {
+                return sorted[base];
+            }
+        };
 
-            const labels = sortedBuckets.map(b => `${b} - ${parseInt(b) + bucketSize - 0.1}`);
-            const data = sortedBuckets.map(b => distribution[b]);
-
-            return { labels, data };
-        }
-
-        function createBarChart(chartId, label, chartData) {
-            if (chartInstances[chartId]) {
-                chartInstances[chartId].destroy();
+        function createCombinedBoxPlotChart(ratingsData, tznkData, engData, profiData) {
+            if (combinedChartInstance) {
+                combinedChartInstance.destroy();
             }
 
-            chartInstances[chartId] = new Chart(chartContexts[chartId], {
-                type: 'bar',
+            const data = [ratingsData, tznkData, engData, profiData];
+            const labels = ['Рейтинг', 'ТЗНК', 'Іноземна мова', 'Фаховий іспит'];
+
+            combinedChartInstance = new Chart(chartContext, {
+                type: 'boxplot',
                 data: {
-                    labels: chartData.labels,
+                    labels: labels,
                     datasets: [{
-                        label: `Кількість студентів`,
-                        data: chartData.data,
-                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
-                        borderColor: 'rgba(0, 123, 255, 1)',
-                        borderWidth: 1
+                        label: 'Статистика',
+                        data: data,
+                        backgroundColor: [
+                            'rgba(0, 123, 255, 0.2)',
+                            'rgba(40, 167, 69, 0.2)',
+                            'rgba(255, 193, 7, 0.2)',
+                            'rgba(220, 53, 69, 0.2)'
+                        ],
+                        borderColor: [
+                            'rgba(0, 123, 255, 1)',
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(255, 193, 7, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 2,
+                        itemRadius: 3,
                     }]
                 },
                 options: {
+                    indexAxis: 'y',
                     responsive: true,
-                    maintainAspectRatio: true,
+                    devicePixelRatio: window.devicePixelRatio,
                     plugins: {
-                        legend: {
-                            display: false,
-                            position: 'top',
-                        },
-                        title: {
-                            display: false,
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (context) => context[0].label,
+                                label: (context) => {
+                                    const stats = context.raw;
+
+                                    return [
+                                        `MAX: ${quantile(stats, 1.0)}`,
+                                        `Q3: ${quantile(stats, 0.75)}`,
+                                        `Median: ${quantile(stats, 0.5)}`,
+                                        `Q1: ${quantile(stats, 0.25)}`,
+                                        `MIN: ${quantile(stats, 0.0)}`
+                                    ];
+                                }
+                            }
                         }
                     },
                     scales: {
                         y: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Кількість студентів'
-                            }
+                            beginAtZero: false,
                         },
                         x: {
-                            title: {
-                                display: true,
-                                text: 'Оцінка'
-                            }
+                            beginAtZero: false,
+                            title: { display: true, text: 'Оцінка' }
                         }
                     }
                 }
