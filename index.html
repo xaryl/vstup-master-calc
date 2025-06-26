@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Інструменти вступника</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #005A9C;
+            --secondary-color: #007BFF;
+            --background-color: #f0f4f8;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --light-text-color: #fff;
+            --border-color: #dbe2e9;
+            --success-color: #28a745;
+            --shadow-color: rgba(0, 90, 156, 0.15);
+        }
+
+        body {
+            font-family: 'Tektur', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .page-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .content-section {
+            background-color: var(--card-background);
+            padding: 30px 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px var(--shadow-color);
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 600px) {
+            .content-section {
+                padding: 20px 25px;
+            }
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 40px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        h2,
+        h3 {
+            color: var(--primary-color);
+            font-weight: 700;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 2.2rem;
+            margin-bottom: 25px;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0px;
+            margin-top: 0px;
+        }
+
+        p {
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        button {
+            width: 100%;
+            max-width: 400px;
+            display: block;
+            margin: 20px auto 0 auto;
+            padding: 15px;
+            background: linear-gradient(45deg, var(--secondary-color), var(--primary-color));
+            color: var(--light-text-color);
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-family: 'Tektur', sans-serif;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #b0c4de;
+            cursor: not-allowed;
+        }
+
+        .content-selection {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .file-upload-area {
+            text-align: center;
+            border: 2px dashed var(--secondary-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px auto;
+            background-color: #f8faff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-upload-area:hover {
+            background-color: #e6f7ff;
+        }
+
+        .file-upload-area label {
+            font-weight: 500;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        #htmlFileInput {
+            display: none;
+        }
+
+        #status {
+            text-align: center;
+            margin: 25px 0;
+            font-size: 1.1em;
+            color: var(--text-color);
+            min-height: 25px;
+            font-weight: 500;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .chart-container {
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            background-color: #fdfdfd;
+        }
+
+        .calculator-container {
+            max-width: 500px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .description {
+            color: #667;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            font-family: 'Tektur', sans-serif;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+        }
+
+        .result-container {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 8px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            display: none;
+        }
+
+        .result-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+            display: block;
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .result-score {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--success-color);
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .formula {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #888;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        <h1>Інструменти Вступника</h1>
+
+        <div class="content-section">
+            <div class="calculator-container">
+                <h2>Калькулятор конкурсного балу</h2>
+                <p class="description">Введіть ваші бали за іспити, щоб розрахувати підсумковий конкурсний бал для
+                    вступу.</p>
+
+                <form id="ratingForm">
+                    <div class="input-group">
+                        <label for="tznk">Оцінка за ТЗНК</label>
+                        <input type="number" id="tznk" min="100" max="200" placeholder="Бал від 100 до 200" value="196"
+                            required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="english">Оцінка за іспит з англійської мови</label>
+                        <input type="number" id="english" min="100" max="200" placeholder="Бал від 100 до 200"
+                            value="188" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="professional">Оцінка за фаховий іспит</label>
+                        <input type="number" id="professional" min="100" max="200" placeholder="Бал від 100 до 200"
+                            value="180" required>
+                    </div>
+
+                    <button type="submit">Обчислити бал</button>
+                </form>
+
+                <div id="result" class="result-container">
+                    <p class="result-title">Ваш конкурсний бал:</p>
+                    <p id="score" class="result-score"></p>
+                    <div class="formula">
+                        <strong>Формула:</strong> Бал = 0.2 × ТЗНК + 0.2 × Англ. мова + 0.6 × Фаховий іспит
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-section">
+            <h2>Аналіз вступної кампанії</h2>
+            <div class="file-upload-area">
+                <label for="htmlFileInput">Натисніть тут, щоб обрати HTML-файл для аналізу ...</label>
+                <input type="file" id="htmlFileInput" accept=".html, .htm">
+            </div>
+
+            <div class="content-selection">
+                <button id="analyzeDefaultBtn">Аналізувати файл за замовчуванням</button>
+                <button id="fetchDataBtn">Аналізувати обраний файл</button>
+            </div>
+
+            <div id="status">Натисніть "Аналізувати файл за замовчуванням" або оберіть свій файл для аналізу.</div>
+
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>Рейтинг</h3>
+                    <canvas id="ratingsChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>ТЗНК</h3>
+                    <canvas id="tznkChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Іноземна мова</h3>
+                    <canvas id="engChart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Фаховий іспит</h3>
+                    <canvas id="fiChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        Chart.defaults.font.family = "'Tektur', sans-serif";
+        Chart.defaults.font.weight = '500';
+        Chart.defaults.color = '#333';
+
+        const fileInput = document.getElementById('htmlFileInput');
+        const fetchDataBtn = document.getElementById('fetchDataBtn');
+        const statusDiv = document.getElementById('status');
+        const chartContexts = {
+            ratings: document.getElementById('ratingsChart').getContext('2d'),
+            tznk: document.getElementById('tznkChart').getContext('2d'),
+            eng: document.getElementById('engChart').getContext('2d'),
+            fi: document.getElementById('fiChart').getContext('2d'),
+        };
+
+        const analyzeDefaultBtn = document.getElementById('analyzeDefaultBtn');
+
+        let chartInstances = {};
+
+        fetchDataBtn.disabled = true;
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                statusDiv.textContent = `Файл обрано. Все готово до аналізу.`;
+                statusDiv.style.color = '#555';
+                fetchDataBtn.disabled = false;
+            } else {
+                statusDiv.textContent = "Будь ласка, оберіть HTML-файл для початку.";
+                fetchDataBtn.disabled = true;
+            }
+        });
+
+        fetchDataBtn.addEventListener('click', () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                statusDiv.textContent = "Помилка: не обрано файл.";
+                statusDiv.style.color = 'red';
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = (event) => {
+                const htmlContent = event.target.result;
+                analyzeHtmlContent(htmlContent);
+            };
+
+            reader.onerror = (event) => {
+                console.error("Файл неможливо прочитати!", event.target.error);
+                statusDiv.textContent = `Помилка: неможливо прочитати файл.`;
+                statusDiv.style.color = 'red';
+            };
+
+            statusDiv.textContent = "Читання файла...";
+            fetchDataBtn.disabled = true;
+            analyzeDefaultBtn.disabled = true;
+            reader.readAsText(file);
+        });
+
+        analyzeDefaultBtn.addEventListener('click', () => {
+            const defaultFile = '162_2024.html';
+            statusDiv.textContent = `Завантаження файлу за замовчуванням: ${defaultFile}...`;
+            fetchDataBtn.disabled = true;
+            analyzeDefaultBtn.disabled = true;
+
+            fetch(defaultFile)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Не вдалося завантажити файл. Переконайтесь, що '${defaultFile}' знаходиться в тій же папці, що й index.html. Статус: ${response.statusText}`);
+                    }
+                    return response.text();
+                })
+                .then(htmlContent => {
+                    analyzeHtmlContent(htmlContent);
+                })
+                .catch(error => {
+                    console.error("Помилка під час завантаження файлу за замовчуванням:", error);
+                    statusDiv.textContent = `Помилка: ${error.message}`;
+                    statusDiv.style.color = 'red';
+                    fetchDataBtn.disabled = fileInput.files.length === 0;
+                    analyzeDefaultBtn.disabled = false;
+                });
+        });
+
+
+        function analyzeHtmlContent(htmlContent) {
+            try {
+                statusDiv.textContent = "Парсинг HTML-файла...";
+
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlContent, 'text/html');
+
+                const budgetDivs = doc.querySelectorAll("div.payment-1.request-status-14");
+
+                if (budgetDivs.length === 0) {
+                    throw new Error("Не знайдено жодного студента-бюджетника. Переконайтесь, що файл коректний.");
+                }
+
+                statusDiv.textContent = `Знайдено ${budgetDivs.length} студентів-бюджетників. Видобування оцінок...`;
+
+                const ratings = [];
+                const tznk = [];
+                const eng = [];
+                const profi = [];
+
+                budgetDivs.forEach(budgetDiv => {
+                    const ratingEl = budgetDiv.querySelector("div.offer-request-kv");
+                    if (ratingEl) {
+                        ratings.push(parseFloat(ratingEl.innerText.slice(34, 41).replace(",", ".")));
+                    }
+
+                    const subjectDivs = budgetDiv.querySelectorAll("div.offer-subject");
+                    subjectDivs.forEach(sub => {
+                        const subText = sub.innerText;
+                        const scoreEl = sub.querySelector("div.f");
+                        if (scoreEl) {
+                            const scoreMatch = scoreEl.innerText.match(/\d+/);
+                            if (scoreMatch) {
+                                const score = parseFloat(scoreMatch[0]);
+                                if (subText.includes("ТЗНК")) tznk.push(score);
+                                else if (subText.includes("Іноземна")) eng.push(score);
+                                else if (subText.includes("Фахове")) profi.push(score);
+                            }
+                        }
+                    });
+                });
+
+                statusDiv.textContent = "Створення візуалізації...";
+
+                createBarChart('ratings', 'Overall Rating', createDistribution(ratings, 2));
+                createBarChart('tznk', 'TZNK Score', createDistribution(tznk, 2));
+                createBarChart('eng', 'Foreign Language Score', createDistribution(eng, 2));
+                createBarChart('fi', 'Professional Exam Score', createDistribution(profi, 2));
+
+                statusDiv.textContent = `Аналіз успішно завершено! Проаналізовано ${budgetDivs.length} студентів.`;
+                statusDiv.style.color = 'green';
+
+            } catch (error) {
+                console.error("Помилка трапилась під час аналізу:", error);
+                statusDiv.textContent = `Помилка: ${error.message}`;
+                statusDiv.style.color = 'red';
+            } finally {
+                fetchDataBtn.disabled = fileInput.files.length === 0;
+                analyzeDefaultBtn.disabled = false;
+            }
+        }
+
+        function createDistribution(scores, bucketSize) {
+            if (scores.length === 0) return { labels: [], data: [] };
+
+            const distribution = {};
+            scores.forEach(score => {
+                if (isNaN(score)) return;
+                const bucketStart = Math.floor(score / bucketSize) * bucketSize;
+                distribution[bucketStart] = (distribution[bucketStart] || 0) + 1;
+            });
+
+            const sortedBuckets = Object.keys(distribution).sort((a, b) => a - b);
+
+            const labels = sortedBuckets.map(b => `${b} - ${parseInt(b) + bucketSize - 0.1}`);
+            const data = sortedBuckets.map(b => distribution[b]);
+
+            return { labels, data };
+        }
+
+        function createBarChart(chartId, label, chartData) {
+            if (chartInstances[chartId]) {
+                chartInstances[chartId].destroy();
+            }
+
+            chartInstances[chartId] = new Chart(chartContexts[chartId], {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: `Кількість студентів`,
+                        data: chartData.data,
+                        backgroundColor: 'rgba(0, 123, 255, 0.6)',
+                        borderColor: 'rgba(0, 123, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false,
+                            position: 'top',
+                        },
+                        title: {
+                            display: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Кількість студентів'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Оцінка'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('ratingForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            const tznk = parseFloat(document.getElementById('tznk').value);
+            const english = parseFloat(document.getElementById('english').value);
+            const professional = parseFloat(document.getElementById('professional').value);
+
+            if (isNaN(tznk) || isNaN(english) || isNaN(professional)) {
+                alert('Будь ласка, заповніть усі поля коректними числами.');
+                return;
+            }
+
+            const w_tznk = 0.2;
+            const w_english = 0.2;
+            const w_professional = 0.6;
+
+            const rating = (tznk * w_tznk) + (english * w_english) + (professional * w_professional);
+
+            const resultContainer = document.getElementById('result');
+            const scoreElement = document.getElementById('score');
+
+            scoreElement.textContent = rating.toFixed(3);
+
+            resultContainer.classList.add('visible');
+        });
+
+    </script>
+</body>
+
+</html>
